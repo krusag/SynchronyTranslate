@@ -1,0 +1,139 @@
+/* static/style.css */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 30px;
+}
+
+/* Стили для элементов управления */
+.controls {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.language-select {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.select-group {
+    flex: 1;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: white;
+    font-size: 16px;
+    color: #333;
+}
+
+.mode-select {
+    margin-bottom: 20px;
+}
+
+/* Стили для кнопки записи */
+.record-button {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.record-button:hover {
+    background-color: #2980b9;
+}
+
+.record-button.recording {
+    background-color: #e74c3c;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Стили для результатов */
+.result-container {
+    margin-top: 30px;
+}
+
+.text-block {
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.text-block h2 {
+    color: #2c3e50;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+}
+
+.text-content {
+    margin: 0;
+    line-height: 1.6;
+    color: #333;
+    min-height: 24px;
+}
+
+/* Адаптивность */
+@media (max-width: 600px) {
+    .container {
+        padding: 15px;
+    }
+
+    .language-select {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .controls {
+        padding: 15px;
+    }
+}

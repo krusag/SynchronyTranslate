@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Голосовой переводчик</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Голосовой Переводчик</h1>
+
+        <div class="controls">
+            <label for="targetLanguage">Выберите язык перевода:</label>
+            <select id="targetLanguage">
+                <option value="en">Английский</option>
+                <option value="fr">Французский</option>
+                <option value="de">Немецкий</option>
+                <option value="es">Испанский</option>
+            </select>
+
+            <label for="modeSelect">Режим перевода:</label>
+            <select id="modeSelect">
+                <option value="local">Локальный (оффлайн)</option>
+                <option value="online">Онлайн (Google)</option>
+            </select>
+
+            <button id="recordButton">🎙 Начать запись</button>
+        </div>
+
+        <div id="result">
+            <h2>Распознанный текст:</h2>
+            <p id="originalText">...</p>
+
+            <h2>Перевод:</h2>
+            <p id="translatedText">...</p>
+        </div>
+
+        <!-- Поле для загрузки аудиофайла -->
+        <input type="file" id="audioInput" name="audio" accept="audio/*">
+
+        <!-- Контейнер для визуализации волны -->
+        <div id="waveform"></div>
+        <button id="playPauseBtn" type="button">Воспроизвести/Пауза</button>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let wavesurfer = null;
+
+        document.getElementById('recordButton').addEventListener('click', async () => {
+            if (!mediaRecorder || mediaRecorder.state === "inactive") {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.addEventListener("dataavailable", event => {
+                    audioChunks.push(event.data);
+                });
+
+                mediaRecorder.addEventListener("stop", async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob, 'recording.webm');
+                    formData.append('target_language', document.getElementById('targetLanguage').value);
+                    formData.append('mode', document.getElementById('modeSelect').value);
+
+                    const response = await fetch('/translate', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        alert("Ошибка: " + data.error);
+                    } else {
+                        document.getElementById('originalText').textContent = data.original;
+                        document.getElementById('translatedText').textContent = data.translated;
+                        speakText(data.translated);
+                    }
+
+                    audioChunks = [];
+                });
+
+                mediaRecorder.start();
+                document.getElementById('recordButton').textContent = "🛑 Остановить запись";
+            } else {
+                mediaRecorder.stop();
+                document.getElementById('recordButton').textContent = "🎙 Начать запись";
+            }
+        });
+
+        function speakText(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            speechSynthesis.speak(utterance);
+        }
+
+        function loadAudioToWaveform(file) {
+            if (wavesurfer) {
+                wavesurfer.destroy();
+            }
+            wavesurfer = WaveSurfer.create({
+                container: '#waveform',
+                waveColor: '#2196f3',
+                progressColor: '#1565c0',
+                height: 80
+            });
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                wavesurfer.loadBlob(new Blob([e.target.result]));
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        document.getElementById('audioInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                loadAudioToWaveform(file);
+            }
+        });
+
+        document.getElementById('playPauseBtn').addEventListener('click', function() {
+            if (wavesurfer) {
+                wavesurfer.playPause();
+            }
+        });
+    </script>
+
+    <!-- Стили для красивого отображения -->
+    <style>
+    #waveform {
+        width: 100%;
+        margin: 20px 0;
+        background: #f5f5f5;
+        border-radius: 8px;
+    }
+    </style>
+</body>
+</html>
