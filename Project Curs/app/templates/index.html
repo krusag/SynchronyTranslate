@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Голосовой переводчик</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Голосовой Переводчик</h1>
+
+        <div class="controls">
+            <div class="language-select">
+                <div class="select-group">
+                    <label for="sourceLanguage">Язык распознавания:</label>
+                    <select id="sourceLanguage">
+                        {% for code, name in languages.items() %}
+                        <option value="{{ code }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="select-group">
+                    <label for="targetLanguage">Язык перевода:</label>
+                    <select id="targetLanguage">
+                        <option value="en">Английский</option>
+                        <option value="fr">Французский</option>
+                        <option value="de">Немецкий</option>
+                        <option value="es">Испанский</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mode-select">
+                <label for="modeSelect">Режим перевода:</label>
+                <select id="modeSelect">
+                    <option value="local">Локальный (оффлайн)</option>
+                    <option value="online">Онлайн (Google)</option>
+                </select>
+            </div>
+
+            <button id="recordButton" class="record-button">🎙 Начать запись</button>
+        </div>
+
+        <div id="result" class="result-container">
+            <div class="text-block">
+                <h2>Распознанный текст:</h2>
+                <p id="originalText" class="text-content">...</p>
+            </div>
+
+            <div class="text-block">
+                <h2>Перевод:</h2>
+                <p id="translatedText" class="text-content">...</p>
+            </div>
+        </div>
+
+        <button onclick="fetch('/shutdown', {method: 'POST'}).then(() => window.close())">Остановить сервер</button>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById('recordButton').addEventListener('click', async () => {
+            if (!mediaRecorder || mediaRecorder.state === "inactive") {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    mediaRecorder.addEventListener("dataavailable", event => {
+                        audioChunks.push(event.data);
+                    });
+
+                    mediaRecorder.addEventListener("stop", async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const formData = new FormData();
+                        formData.append('audio', audioBlob, 'recording.webm');
+                        formData.append('source_language', document.getElementById('sourceLanguage').value);
+                        formData.append('target_language', document.getElementById('targetLanguage').value);
+                        formData.append('mode', document.getElementById('modeSelect').value);
+
+                        try {
+                            const response = await fetch('/translate', {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            const data = await response.json();
+
+                            if (data.error) {
+                                alert("Ошибка: " + data.error);
+                            } else {
+                                document.getElementById('originalText').textContent = data.original;
+                                document.getElementById('translatedText').textContent = data.translated;
+                                speakText(data.translated, data.target_language);
+                            }
+                        } catch (error) {
+                            alert("Ошибка при отправке запроса: " + error.message);
+                        }
+
+                        audioChunks = [];
+                    });
+
+                    mediaRecorder.start();
+                    document.getElementById('recordButton').textContent = "🛑 Остановить запись";
+                    document.getElementById('recordButton').classList.add('recording');
+                } catch (error) {
+                    alert("Ошибка при доступе к микрофону: " + error.message);
+                }
+            } else {
+                mediaRecorder.stop();
+                document.getElementById('recordButton').textContent = "🎙 Начать запись";
+                document.getElementById('recordButton').classList.remove('recording');
+            }
+        });
+
+        function speakText(text, language) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = language;
+            speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+</html>
